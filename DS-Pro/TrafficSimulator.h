@@ -2,9 +2,6 @@
 #include "TrafficNetwork.h"
 #include "MetricsCollector.h"
 
-// ==========================================
-// 3. Simulation Engine
-// ==========================================
 class TrafficSimulator {
 private:
     TrafficNetwork* network;
