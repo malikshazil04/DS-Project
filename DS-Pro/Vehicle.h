@@ -22,6 +22,9 @@ private:
     vector<int> path;      // Shortest path P_v (Sequence of intersection IDs)
     int pathIndex;         // Current progress in the path
 
+    int startTime;
+    double freeFlowTravelTime;
+
 public:
     Vehicle(int id, int src, int dest) {
         this->id = id;
@@ -31,6 +34,8 @@ public:
         this->remainingTime = 0.0;
         this->status = WAITING;
         this->pathIndex = 0;
+        this->startTime = -1;
+        this->freeFlowTravelTime = 0.0;
     }
     ~Vehicle() {}
 
@@ -43,6 +48,8 @@ public:
     VehicleStatus getStatus() const { return status; }
     vector<int> getPath() const { return path; }
     int getPathIndex() const { return pathIndex; }
+    int getStartTime() const { return startTime; }
+    double getFreeFlowTravelTime() const { return freeFlowTravelTime; }
 
     // Setters
     void setCurrentEdge(Road* edge) { currentEdge = edge; }
@@ -50,6 +57,8 @@ public:
     void setStatus(VehicleStatus s) { status = s; }
     void setPath(const vector<int>& newPath) { path = newPath; }
     void setPathIndex(int index) { pathIndex = index; }
+    void setStartTime(int t) { startTime = t; }
+    void setFreeFlowTravelTime(double t) { freeFlowTravelTime = t; }
 
     // CEP Core Functions
     // Decrement remaining travel time: r_v(t + 1) = r_v(t) - 1
@@ -76,7 +85,6 @@ public:
         }
     }
 
-    // Display
     void display() const {
         cout << "[Vehicle " << id << "] "
             << "Path: " << sourceId << "->" << destinationId
