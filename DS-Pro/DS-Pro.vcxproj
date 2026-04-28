@@ -127,8 +127,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClInclude Include="Intersectionsh.h" />
+    <ClInclude Include="Intersection.h" />
     <ClInclude Include="Road.h" />
+    <ClInclude Include="RoadNetwork.h" />
+    <ClInclude Include="RoutePlanner.h" />
     <ClInclude Include="Vehicle.h" />
   </ItemGroup>
   <ItemGroup>
