@@ -89,6 +89,7 @@ public:
         return incomingRoadIds;
     }
 
+
     // function for adding incoming road to an intersection
     void addIncomingRoad(int roadId)
     {
@@ -101,6 +102,11 @@ public:
         }
 
         incomingRoadIds.push_back(roadId);
+    }
+    // Check if a given road currently has green signal
+    bool isGreen(int roadId) const
+    {
+        return currentGreenRoadId == roadId;
     }
     //function for selecting the incoming road having the longest queue and giving it green signal
     void selectGreenRoad(const vector<int>&queueSizes)

@@ -24,6 +24,12 @@
     <ClInclude Include="Intersectionsh.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="TrafficSignal.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SimulationEngine.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
