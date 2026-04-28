@@ -1,5 +1,6 @@
 #pragma once
 #include<vector>
+#include<cmath>  // power builtin function used
 using namespace std;
 
 class Vehicle;
@@ -23,8 +24,9 @@ private:
 	double alpha;  // congestion sensitivity
 	double beta;  // non-linearity factor
 
-	vector<Vehicle*> vehicleQueue; // queue at road end, actual storage of vehicle objects
-	// update vehicle step by step, transfer vehicles between states
+	vector<Vehicle*> movingVehicles;   // vehicles on road (fij)
+	vector<Vehicle*> waitingQueue;     // vehicles at intersection (Qij)
+	// vector<Vehicle*> is the list that stores addresses of vehicle objects
 
 public:
 	// Constructor
@@ -45,7 +47,7 @@ public:
 	}
 
 	// Getters
-	int getRoadId() const { return roadID; }
+	int getRoadID() const { return roadID; }
 
 	int getFrom() const { return fromIntersection; }
 
@@ -88,7 +90,7 @@ public:
 	void addVehicle(Vehicle* v)  // pointer to Vehicle object
 	{
 		currentFlow++;  // fij++, vehicles currently on road
-		vehicleQueue.push_back(v);  // add in the actual storage of vehicles
+		movingVehicles.push_back(v);  // add in the actual storage of vehicles
 	}
 
 	// Remove vehicle from road
@@ -103,7 +105,7 @@ public:
 	void enqueueVehicle(Vehicle* v)
 	{
 		queueSize++;  // Qij++, cars waiting at red light
-		vehicleQueue.push_back(v);
+		waitingQueue.push_back(v);
 	}
 
 	//Discharge vehicles from queue
@@ -112,12 +114,17 @@ public:
 		if (queueSize > 0)
 			queueSize--;
 	}
-	// vehicle leaves queue when signal allows movement.
+	// vehicle leaves waiting queue when signal allows movement.
 
 	// Get Vehicle queue
-	vector<Vehicle*>& getVehicleQueue()
+	const vector<Vehicle*>& getMovingVehicles() const
 	{
-		return vehicleQueue;
+		return movingVehicles;
+	}
+
+	const vector<Vehicle*>& getWaitingQueue() const
+	{
+		return waitingQueue;
 	}
 	// vector<Vehicle*> = vector storing pointers of Vehicle
 	// with & it returns the original vector not a copy.
