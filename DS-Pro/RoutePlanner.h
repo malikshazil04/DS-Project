@@ -2,7 +2,7 @@
 
 #include <vector>   // stores final path (list of nodes)
 #include <unordered_map>  // fast lookup for graph data (distances, parents, intersections)
-#include <queue>  // (priority_queue) → min-heap for Dijkstra
+#include <queue>  // (priority_queue) -> min-heap for Dijkstra
 #include <limits> // provides infinity, a value bigger than any possible real travel time
 #include <algorithm>  // used for reverse()
 using namespace std;
@@ -19,7 +19,7 @@ private:
     RoadNetwork* network;   // pointer to graph
 
     // store shortest distance (travel time)
-    unordered_map<int, double> dist; // Stores: node → shortest distance(travel time)
+    unordered_map<int, double> dist; // Stores: node -> shortest distance(travel time)
 
     // store previous node for path reconstruction
     unordered_map<int, int> parent;  // store path history
@@ -55,9 +55,9 @@ public:
         {
             dist[node.first] = numeric_limits<double>::infinity(); // initialize all nodes with infinite distance
         }
-        // network->getAllIntersections() → returns all nodes in graph
-        // node.first → intersection ID
-        // infinity → unknown distance initially
+        // network -> getAllIntersections() -> returns all nodes in graph
+        // node.first -> intersection ID
+        // infinity -> unknown distance initially
 
         // source initialization
         dist[source] = 0;  // Distance to source = 0
@@ -82,7 +82,7 @@ public:
 
             for (Road* road : roads)  // loop through all connected roads
             {
-                int neighbor = road->getTo(); // each road connects from ->to
+                int neighbor = road->getTo(); // each road connects from -> to
 
                 // update congestion-aware cost
                 road->updateTravelTime(); // Update weight dynamically
