@@ -131,6 +131,8 @@
     <ClInclude Include="TrafficSignal.h" />
     <ClInclude Include="Intersectionsh.h" />
     <ClInclude Include="Road.h" />
+    <ClInclude Include="RoadNetwork.h" />
+    <ClInclude Include="RoutePlanner.h" />
     <ClInclude Include="Vehicle.h" />
   </ItemGroup>
   <ItemGroup>
