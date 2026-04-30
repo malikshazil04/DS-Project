@@ -45,9 +45,10 @@ private:
 
     // Per-vehicle routing state
     vector<vector<int>> vehiclePaths;   // P_v: path as sequence of node IDs
-    vector<int>         pathProgress;   // index of next node to reach
-    vector<int>         startStep;      // step when vehicle first moved
+    vector<int>         pathProgress;   // which edge in path the vehicle is on (0 = not launched)
+    vector<int>         startStep;      // step when vehicle was launched
     vector<double>      freeFlowTimes;  // T_sd^free: ideal time without congestion
+    vector<bool>        launched;       // has vehicle entered the network yet?
 
     // ============================================================
     //  Private helpers
@@ -80,10 +81,11 @@ private:
         return true; // no signal at node → always green
     }
 
-    // Find the Road* connecting fromNode -> toNode
+    // Find the Road* connecting fromNode -> toNode (safe, no exception)
     Road* findRoad(int fromNode, int toNode) const
     {
-        for (const auto& rPair : network->getAllRoads())
+        const auto& allRoads = network->getAllRoads();
+        for (const auto& rPair : allRoads)
         {
             Road* r = rPair.second;
             if (r->getFrom() == fromNode && r->getTo() == toNode)
@@ -122,25 +124,44 @@ private:
                 v.updateRemainingTime();
     }
 
-    // --- CEP Step 3: Intersection arrivals + discharge (Section 4.2) ---
-    // d_ij(t) = g_ij(t) * min(Q_ij(t), mu_ij, c_jk - f_jk(t))
+    // --- CEP Step 3: Process all vehicles each step ---
+    // Handles: launching new vehicles, moving queued vehicles, marking arrivals
     void stepProcessIntersections(int& arrivedThisStep)
     {
         for (int i = 0; i < (int)vehicles.size(); i++)
         {
-            if (!vehicles[i].hasReachedIntersection()) continue;
-            if (vehicles[i].isArrived())               continue;
-
-            // Record start step on first movement
-            if (startStep[i] == -1) startStep[i] = currentStep;
+            if (vehicles[i].isArrived()) continue;
 
             int progress = pathProgress[i];
             int pathLen = (int)vehiclePaths[i].size();
-
-            // No valid path
             if (pathLen < 2) { vehicles[i].arrive(); continue; }
 
-            // Reached destination node?
+            // === Case A: Vehicle not yet launched — try to enter first road ===
+            if (!launched[i])
+            {
+                Road* firstRoad = findRoad(vehiclePaths[i][0], vehiclePaths[i][1]);
+                if (!firstRoad) { vehicles[i].arrive(); continue; }
+
+                if (firstRoad->getCurrentFlow() < firstRoad->getCapacity())
+                {
+                    startStep[i] = currentStep;
+                    launched[i] = true;
+                    firstRoad->addVehicle(&vehicles[i]);
+                    int tt = max(1, (int)firstRoad->getCurrentTravelTime());
+                    vehicles[i].enterEdge(firstRoad->getRoadID(), tt);
+                    pathProgress[i] = 1; // now heading toward node index 1
+                }
+                // else: road full, wait until next step
+                continue;
+            }
+
+            // === Case B: Vehicle is MOVING — wait for travel time to expire ===
+            if (vehicles[i].isMoving()) continue;
+
+            // === Case C: Vehicle is WAITING at intersection (remainingTime == 0) ===
+            // It has reached node vehiclePaths[i][progress] and wants to go to [progress+1]
+
+            // Reached final destination?
             if (progress >= pathLen - 1)
             {
                 vehicles[i].arrive();
@@ -150,46 +171,58 @@ private:
                 continue;
             }
 
-            int fromNode = vehiclePaths[i][progress];
-            int toNode = vehiclePaths[i][progress + 1];
-            Road* road = findRoad(fromNode, toNode);
+            // Find next road
+            int fromNode = vehiclePaths[i][progress - 1];
+            int toNode = vehiclePaths[i][progress];
+            Road* currRoad = findRoad(fromNode, toNode);  // road vehicle just finished
 
-            if (!road) { vehicles[i].arrive(); continue; }
+            int nextFrom = vehiclePaths[i][progress];
+            int nextTo = vehiclePaths[i][progress + 1];
+            Road* nextRoad = findRoad(nextFrom, nextTo);
 
-            // Get the road AFTER this one for c_jk, f_jk
-            int nextFlow = 0, nextCap = 9999;
-            if (progress + 2 < pathLen)
+            if (!nextRoad)
             {
-                Road* nextRoad = findRoad(toNode, vehiclePaths[i][progress + 2]);
-                if (nextRoad)
-                {
-                    nextFlow = nextRoad->getCurrentFlow();
-                    nextCap = nextRoad->getCapacity();
-                }
+                vehicles[i].arrive(); // dead-end, treat as arrived
+                continue;
             }
 
-            bool green = isGreenAt(toNode, road->getRoadID());
-
-            // CEP Formula: d_ij(t) = g_ij * min(Q_ij, mu_ij, c_jk - f_jk)
-            int allowed = road->calculateAllowedDischarge(green, nextFlow, nextCap);
-
-            // Vehicle not yet in queue — treat as single unit trying to enter
-            if (road->getQueueSize() == 0 && green &&
-                road->getCurrentFlow() < road->getCapacity())
-                allowed = 1;
-
-            if (allowed <= 0)
+            // Look-ahead: capacity of the road after nextRoad (c_jk, f_jk)
+            int lookFlow = 0, lookCap = 9999;
+            if (progress + 2 < pathLen)
             {
-                road->enqueueVehicle(&vehicles[i]);
-                vehicles[i].waitAtIntersection();
+                Road* lookAhead = findRoad(nextTo, vehiclePaths[i][progress + 2]);
+                if (lookAhead) { lookFlow = lookAhead->getCurrentFlow(); lookCap = lookAhead->getCapacity(); }
+            }
+
+            // Signal check at nextTo intersection
+            bool green = isGreenAt(nextTo, nextRoad->getRoadID());
+
+            // CEP discharge formula: d = g * min(Q, mu, c_jk - f_jk)
+            // Q here = 1 (this one vehicle waiting)
+            int allowed = 0;
+            if (green && nextRoad->getCurrentFlow() < nextRoad->getCapacity())
+            {
+                int mu = nextRoad->getDischargeRate();
+                int available = lookCap - lookFlow;
+                if (available < 0) available = 0;
+                allowed = min(1, min(mu, available)); // Q=1 for this vehicle
+            }
+
+            if (allowed > 0)
+            {
+                // Discharge from current road's queue and enter next road
+                if (currRoad) currRoad->dischargeVehicle();
+                nextRoad->addVehicle(&vehicles[i]);
+                int tt = max(1, (int)nextRoad->getCurrentTravelTime());
+                vehicles[i].enterEdge(nextRoad->getRoadID(), tt);
+                pathProgress[i]++;
             }
             else
             {
-                int travelTime = (int)road->getCurrentTravelTime();
-                if (travelTime < 1) travelTime = 1;
-                road->addVehicle(&vehicles[i]);
-                vehicles[i].enterEdge(road->getRoadID(), travelTime);
-                pathProgress[i]++;
+                // Blocked — enqueue on current road and keep waiting
+                if (currRoad && vehicles[i].isWaiting())
+                    currRoad->enqueueVehicle(&vehicles[i]); // idempotent-ish via status
+                vehicles[i].waitAtIntersection();
             }
         }
     }
@@ -243,6 +276,7 @@ public:
         pathProgress.push_back(0);
         startStep.push_back(-1);
         freeFlowTimes.push_back(0.0);
+        launched.push_back(false);
     }
 
     void addTrafficSignal(const TrafficSignal& s)
