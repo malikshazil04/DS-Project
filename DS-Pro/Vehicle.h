@@ -9,15 +9,17 @@ using namespace std;
 class Vehicle
 {
 private:
-    int source; // starting node
-    int destination;// ending node
-    int currentEdge; //  basially the CURRENT road number or edge id
-    int remainingTravelTime;  // the remaing travel time
-    string status;  // moving, waiting, arrived
+    int vehicleId;       // unique ID per CEP Section 4.6
+    int source;          // starting node s_v
+    int destination;     // ending node d_v
+    int currentEdge;     // current road/edge id
+    int remainingTravelTime; // r_v(t)
+    string status;       // MOVING, WAITING, ARRIVED
 
 public:
-    Vehicle() // constructiors
+    Vehicle() // default constructor
     {
+        vehicleId = -1;
         source = -1;
         destination = -1;
         currentEdge = -1;
@@ -26,6 +28,16 @@ public:
     }
     Vehicle(int src, int dest)
     {
+        vehicleId = -1;
+        source = src;
+        destination = dest;
+        currentEdge = -1;
+        remainingTravelTime = 0;
+        status = "WAITING";
+    }
+    Vehicle(int id, int src, int dest)
+    {
+        vehicleId = id;
         source = src;
         destination = dest;
         currentEdge = -1;
@@ -33,7 +45,8 @@ public:
         status = "WAITING";
     }
 
-    void setSource(int src) // making setters for all the attributes
+    void setVehicleId(int id) { vehicleId = id; }
+    void setSource(int src)
     {
         source = src;
     }
@@ -53,7 +66,9 @@ public:
     {
         status = s;
     }
-     // making getters for all the attributes
+    // Getters
+    int getVehicleId() const { return vehicleId; }
+
     int getSource() const
     {
         return source;
@@ -75,7 +90,7 @@ public:
     }
 
     string getStatus()
-   const{
+        const {
         return status;
     }
     //putting the vehicle onto a road and start its movement on that road
@@ -90,7 +105,7 @@ public:
     void updateRemainingTime()
     {
         if (remainingTravelTime > 0)
-        {  
+        {
             remainingTravelTime--;
         }
 
@@ -98,10 +113,10 @@ public:
 
     // checking if the vehicle has reached Intersection
     bool hasReachedIntersection()
-    const
+        const
     {
         return remainingTravelTime == 0;
-     }
+    }
     //vehicle IS MADE TO wait at intersection 
     void waitAtIntersection()
     {
@@ -133,12 +148,12 @@ public:
 
     void displayVehicle() const
     {
-       cout << "Vehicle Information\n";
+        cout << "Vehicle Information\n";
         cout << "Source: " << source << "\n";
         cout << "Destination: " << destination << "\n";
         cout << "Current Edge: " << currentEdge << "\n";
-       cout << "Remaining Travel Time: " << remainingTravelTime << "\n";
-       cout << "Status: " << status << "\n";
+        cout << "Remaining Travel Time: " << remainingTravelTime << "\n";
+        cout << "Status: " << status << "\n";
     }
 
 

@@ -29,7 +29,7 @@ private:
 public:
 	// Constructor
 	RoadNetwork()  // empty graph
-	{ }
+	{}
 
 	// Destructor
 	~RoadNetwork()
@@ -57,16 +57,16 @@ public:
 		}
 	}
 
-	// Add Road(Edge)
+	// Add Road(Edge) — dischargeRate = mu_ij (CEP Section 4.2), default = 2
 	void addRoad(int roadID, int from, int to, double length,
-		double maxSpeed, int capacity)
+		double maxSpeed, int capacity, int dischargeRate = 2)
 	{
 		// ensure nodes exist
 		addIntersection(from);
 		addIntersection(to);
 
 		// create new road, dynamically allocated object
-		Road* newRoad = new Road(roadID, from, to, length, maxSpeed, capacity);
+		Road* newRoad = new Road(roadID, from, to, length, maxSpeed, capacity, dischargeRate);
 
 		// store in road list, key= id, roadID = pointer to Road
 		roads[roadID] = newRoad;
@@ -83,7 +83,7 @@ public:
 	// returns all roads from a node
 	const vector<Road*>& getOutgoingRoad(int intersectionID) const
 	{
-		return adjacencyList.at(intersectionID); 
+		return adjacencyList.at(intersectionID);
 		// .at() = safe access, thorws error if not found
 	}
 	// vector<Road*> = list of roads
