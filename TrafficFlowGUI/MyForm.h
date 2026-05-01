@@ -58,9 +58,9 @@ namespace TrafficFlowGUI {
 			this->label1 = (gcnew System::Windows::Forms::Label());
 			this->panelLeft = (gcnew System::Windows::Forms::Panel());
 			this->panelMap = (gcnew System::Windows::Forms::Panel());
-			this->panelRight = (gcnew System::Windows::Forms::Panel());
 			this->panelBottom = (gcnew System::Windows::Forms::Panel());
 			this->label2 = (gcnew System::Windows::Forms::Label());
+			this->panelRight = (gcnew System::Windows::Forms::Panel());
 			this->panelMap->SuspendLayout();
 			this->panelBottom->SuspendLayout();
 			this->SuspendLayout();
@@ -98,15 +98,6 @@ namespace TrafficFlowGUI {
 			this->panelMap->Size = System::Drawing::Size(1053, 628);
 			this->panelMap->TabIndex = 2;
 			// 
-			// panelRight
-			// 
-			this->panelRight->BackColor = System::Drawing::SystemColors::Control;
-			this->panelRight->Dock = System::Windows::Forms::DockStyle::Right;
-			this->panelRight->Location = System::Drawing::Point(803, 0);
-			this->panelRight->Name = L"panelRight";
-			this->panelRight->Size = System::Drawing::Size(250, 628);
-			this->panelRight->TabIndex = 0;
-			// 
 			// panelBottom
 			// 
 			this->panelBottom->BackColor = System::Drawing::Color::LightGray;
@@ -126,6 +117,15 @@ namespace TrafficFlowGUI {
 			this->label2->Size = System::Drawing::Size(81, 20);
 			this->label2->TabIndex = 0;
 			this->label2->Text = L"Event Log";
+			// 
+			// panelRight
+			// 
+			this->panelRight->BackColor = System::Drawing::SystemColors::Control;
+			this->panelRight->Dock = System::Windows::Forms::DockStyle::Right;
+			this->panelRight->Location = System::Drawing::Point(803, 0);
+			this->panelRight->Name = L"panelRight";
+			this->panelRight->Size = System::Drawing::Size(250, 628);
+			this->panelRight->TabIndex = 0;
 			// 
 			// MyForm
 			// 
