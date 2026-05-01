@@ -1,6 +1,7 @@
 ﻿#pragma once
 #include<vector>
 #include<cmath>  // power builtin function used
+#include <algorithm>
 using namespace std;
 
 class Vehicle;
@@ -92,32 +93,67 @@ public:
 	// high traffic then travel time increases sharply
 
 	// Add vehicle to road (flow update)
+		// Add vehicle to road (flow update)
 	void addVehicle(Vehicle* v)  // pointer to Vehicle object
 	{
+		for (int i = 0; i < movingVehicles.size(); i++)
+		{
+			if (movingVehicles[i] == v)
+				return;  // vehicle already exists, so do not add again
+		}
+
 		currentFlow++;  // fij++, vehicles currently on road
 		movingVehicles.push_back(v);  // add in the actual storage of vehicles
 	}
 
 	// Remove vehicle from road
-	void removeVehicle()
+	void removeVehicle(Vehicle* v)
 	{
-		if (currentFlow > 0)
-			currentFlow--;
+		for (int i = 0; i < movingVehicles.size(); i++)
+		{
+			if (movingVehicles[i] == v)
+			{
+				movingVehicles.erase(movingVehicles.begin() + i);
+				currentFlow--;  // vehicle leaves road then the flow decreases
+				return;
+			}
+		}
 	}
-	// vehicle leaves road then the flow decreases.
+
+	// Check whether vehicle already exists in waiting queue
+	bool isVehicleInQueue(Vehicle* v) const
+	{
+		for (int i = 0; i < waitingQueue.size(); i++)
+		{
+			if (waitingQueue[i] == v)
+				return true;
+		}
+
+		return false;
+	}
 
 	// Add to intersection queue
 	void enqueueVehicle(Vehicle* v)
 	{
-		queueSize++;  // Qij++, cars waiting at red light
-		waitingQueue.push_back(v);
+		if (!isVehicleInQueue(v))
+		{
+			queueSize++;  // Qij++, cars waiting at red light
+			waitingQueue.push_back(v);
+		}
 	}
 
 	// Discharge vehicles from queue
-	void dischargeVehicle()
+	void dischargeVehicle(Vehicle* v)
 	{
-		if (queueSize > 0)
-			queueSize--;
+		for (int i = 0; i < waitingQueue.size(); i++)
+		{
+			if (waitingQueue[i] == v)
+			{
+				waitingQueue.erase(waitingQueue.begin() + i);
+				queueSize--;  // vehicle leaves waiting queue when signal allows movement
+				return;
+			}
+		}
 	}
 	// vehicle leaves waiting queue when signal allows movement.
 

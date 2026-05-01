@@ -76,7 +76,6 @@ public:
                 continue;
 
             // get all outgoing roads (neighbors) — safe, returns empty if no roads
-            const auto& adjList = network->getAllRoads();
             static const vector<Road*> emptyVec;
             const vector<Road*>* roadsPtr = &emptyVec;
             try {
@@ -105,13 +104,28 @@ public:
         }
 
         // reconstruct path
+
+        // If destination is unreachable, return empty path
+        if (dist.find(destination) == dist.end() ||
+            dist[destination] == numeric_limits<double>::infinity())
+        {
+            return {};
+        }
+
         vector<int> path;  // Start backtracking from destination
         int current = destination;
 
-        while (current != -1)
+        while (true)
         {
             // Move backwards using parent array
             path.push_back(current);  // destination -> source (reverse order)
+
+            if (current == source)
+                break;
+
+            if (parent.find(current) == parent.end())
+                return {};
+
             current = parent[current];
         }
 

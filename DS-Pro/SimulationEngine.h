@@ -117,11 +117,30 @@ private:
 
     // --- CEP Step 2: Decrement vehicle travel times (Section 4.6) ---
     // r_v(t+1) = r_v(t) - 1
+    // update remaining time of all moving vehicles step by step
     void stepUpdateVehicleTimes()
     {
-        for (Vehicle& v : vehicles)
-            if (v.isMoving())
-                v.updateRemainingTime();
+        for (int i = 0; i < vehicles.size(); i++)
+        {
+            if (vehicles[i].isMoving())   // only update moving vehicles
+            {
+                vehicles[i].updateRemainingTime();
+
+                // if vehicle has finished its current road
+                if (vehicles[i].hasReachedIntersection())
+                {
+                    Road* finishedRoad = network->getRoad(vehicles[i].getCurrentEdge());
+
+                    if (finishedRoad != nullptr)
+                    {
+                        finishedRoad->removeVehicle(&vehicles[i]);   // vehicle leaves road
+                        finishedRoad->enqueueVehicle(&vehicles[i]);  // vehicle joins waiting queue
+                    }
+
+                    vehicles[i].waitAtIntersection();   // vehicle now waits at intersection
+                }
+            }
+        }
     }
 
     // --- CEP Step 3: Process all vehicles each step ---
@@ -158,70 +177,62 @@ private:
             // === Case B: Vehicle is MOVING — wait for travel time to expire ===
             if (vehicles[i].isMoving()) continue;
 
-            // === Case C: Vehicle is WAITING at intersection (remainingTime == 0) ===
-            // It has reached node vehiclePaths[i][progress] and wants to go to [progress+1]
+            // === Case C: Vehicle is WAITING at intersection ===
 
             // Reached final destination?
             if (progress >= pathLen - 1)
             {
+                Road* finalRoad = findRoad(vehiclePaths[i][progress - 1], vehiclePaths[i][progress]);
+                if (finalRoad)
+                    finalRoad->dischargeVehicle(&vehicles[i]);
+
                 vehicles[i].arrive();
+
                 int actualTime = currentStep - startStep[i];
                 metrics.recordArrival(actualTime, freeFlowTimes[i]);
                 arrivedThisStep++;
                 continue;
             }
 
-            // Find next road
-            int fromNode = vehiclePaths[i][progress - 1];
-            int toNode = vehiclePaths[i][progress];
-            Road* currRoad = findRoad(fromNode, toNode);  // road vehicle just finished
+            // Current road = road just completed
+            int currentNode = vehiclePaths[i][progress];
+            Road* currRoad = findRoad(vehiclePaths[i][progress - 1], currentNode);
 
-            int nextFrom = vehiclePaths[i][progress];
-            int nextTo = vehiclePaths[i][progress + 1];
-            Road* nextRoad = findRoad(nextFrom, nextTo);
+            // Next road = road vehicle wants to enter
+            int nextNode = vehiclePaths[i][progress + 1];
+            Road* nextRoad = findRoad(currentNode, nextNode);
 
-            if (!nextRoad)
+            if (!currRoad || !nextRoad)
             {
-                vehicles[i].arrive(); // dead-end, treat as arrived
                 continue;
             }
 
-            // Look-ahead: capacity of the road after nextRoad (c_jk, f_jk)
-            int lookFlow = 0, lookCap = 9999;
-            if (progress + 2 < pathLen)
-            {
-                Road* lookAhead = findRoad(nextTo, vehiclePaths[i][progress + 2]);
-                if (lookAhead) { lookFlow = lookAhead->getCurrentFlow(); lookCap = lookAhead->getCapacity(); }
-            }
+            // Green signal should be checked at CURRENT intersection
+            // and for the CURRENT incoming road
+            bool green = isGreenAt(currentNode, currRoad->getRoadID());
 
-            // Signal check at nextTo intersection
-            bool green = isGreenAt(nextTo, nextRoad->getRoadID());
-
-            // CEP discharge formula: d = g * min(Q, mu, c_jk - f_jk)
-            // Q here = 1 (this one vehicle waiting)
-            int allowed = 0;
-            if (green && nextRoad->getCurrentFlow() < nextRoad->getCapacity())
-            {
-                int mu = nextRoad->getDischargeRate();
-                int available = lookCap - lookFlow;
-                if (available < 0) available = 0;
-                allowed = min(1, min(mu, available)); // Q=1 for this vehicle
-            }
+            // CEP discharge rule: current queue can move only if:
+            // - signal is green
+            // - current road queue allows discharge
+            // - next road has free capacity
+            int allowed = currRoad->calculateAllowedDischarge(
+                green,
+                nextRoad->getCurrentFlow(),
+                nextRoad->getCapacity()
+            );
 
             if (allowed > 0)
             {
-                // Discharge from current road's queue and enter next road
-                if (currRoad) currRoad->dischargeVehicle();
+                currRoad->dischargeVehicle(&vehicles[i]);
+
                 nextRoad->addVehicle(&vehicles[i]);
                 int tt = max(1, (int)nextRoad->getCurrentTravelTime());
+
                 vehicles[i].enterEdge(nextRoad->getRoadID(), tt);
                 pathProgress[i]++;
             }
             else
             {
-                // Blocked — enqueue on current road and keep waiting
-                if (currRoad && vehicles[i].isWaiting())
-                    currRoad->enqueueVehicle(&vehicles[i]); // idempotent-ish via status
                 vehicles[i].waitAtIntersection();
             }
         }
