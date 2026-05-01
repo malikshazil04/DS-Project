@@ -92,10 +92,12 @@ int main()
 
         vector<TrafficSignal> signals;
         InputHandler::buildSignalsFromUser(signals, network);
-        for (const TrafficSignal& s : signals) engine.addTrafficSignal(s);
+        for (const TrafficSignal& s : signals)
+            engine.addTrafficSignal(s);
 
         vector<Vehicle> vehicles = InputHandler::buildVehiclesFromUser();
-        for (const Vehicle& v : vehicles) engine.addVehicle(v);
+        for (const Vehicle& v : vehicles)
+            engine.addVehicle(v);
     }
 
     // --- Compute initial shortest paths for all vehicles ---

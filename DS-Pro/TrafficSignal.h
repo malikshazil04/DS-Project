@@ -9,30 +9,30 @@ using namespace std;
 class TrafficSignal
 {
 private:
-	int intersectionId;  // ID of the intersection
-	vector<int>incomingRoadIds;   //IDs of the incoming road or edge entering the intersection
-	int currentGreenRoadId;    // road having current green signal ID
-	int greenDuration;        // the duration for which the road remains green (Tg)
-	int timer;                // counts how long the timer stays green
-	int queueThreshold;      //the minimum queue size , below this size the green signal switchesto another road
+    int intersectionId;  // ID of the intersection
+    vector<int>incomingRoadIds;   //IDs of the incoming road or edge entering the intersection
+    int currentGreenRoadId;    // road having current green signal ID
+    int greenDuration;        // the duration for which the road remains green (Tg)
+    int timer;                // counts how long the timer stays green
+    int queueThreshold;      //the minimum queue size , below this size the green signal switchesto another road
 public:
-	TrafficSignal()    // Constructor
-	{
-		intersectionId = -1;
-		currentGreenRoadId = -1;
-		greenDuration = 3;
-		timer = 0;
-		queueThreshold = 5;
-	}
-	TrafficSignal(int id, int duration, int threshold)
-	{
-		intersectionId = id;
-		currentGreenRoadId = -1;
-		greenDuration = duration;
-		timer = 0;
-		queueThreshold = threshold;
-	}
-	// Setters for attributes
+    TrafficSignal()    // Constructor
+    {
+        intersectionId = -1;
+        currentGreenRoadId = -1;
+        greenDuration = 3;
+        timer = 0;
+        queueThreshold = 5;
+    }
+    TrafficSignal(int id, int duration, int threshold)
+    {
+        intersectionId = id;
+        currentGreenRoadId = -1;
+        greenDuration = duration;
+        timer = 0;
+        queueThreshold = threshold;
+    }
+    // Setters for attributes
 
     void setIntersectionId(int id)
     {
@@ -109,7 +109,7 @@ public:
         return currentGreenRoadId == roadId;
     }
     //function for selecting the incoming road having the longest queue and giving it green signal
-    void selectGreenRoad(const vector<int>&queueSizes)
+    void selectGreenRoad(const vector<int>& queueSizes)
     {
         if (incomingRoadIds.empty() || incomingRoadIds.size() != queueSizes.size())
             return;
@@ -123,17 +123,17 @@ public:
         timer = 0;
     }
     // function for updatng signal at each stimulation step
-    void updateSignal(const vector<int>&queueSizes)  //passed by referce so no cpy is made
+    void updateSignal(const vector<int>& queueSizes)  //passed by referce so no cpy is made
     {
         if (incomingRoadIds.empty() || incomingRoadIds.size() != queueSizes.size())
             return;
-        if(currentGreenRoadId==-1)  // if no road is selected
+        if (currentGreenRoadId == -1)  // if no road is selected
         {
             selectGreenRoad(queueSizes);
             return;
         }
         int currentIndex = -1;
-        for(int i=0; i<incomingRoadIds.size();i++) //finding the index of roaad having green signal
+        for (int i = 0; i < incomingRoadIds.size(); i++) //finding the index of roaad having green signal
         {
             if (incomingRoadIds[i] == currentGreenRoadId)
             {
@@ -141,18 +141,18 @@ public:
                 break;
             }
         }
-      
+
         // Safety check 
         if (currentIndex == -1)
         {
             selectGreenRoad(queueSizes);
-            return; 
+            return;
         }
         timer++;
         //switch:
         //The current road has already stayed green for its allowed fixed time.
         //The queue on the current green road has become small enough
-        if(timer>=greenDuration||queueSizes[currentIndex]<queueThreshold)
+        if (timer >= greenDuration || queueSizes[currentIndex] < queueThreshold)
         {
             selectGreenRoad(queueSizes);
         }

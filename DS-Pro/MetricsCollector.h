@@ -6,6 +6,8 @@
 #include <iostream>
 #include <vector>
 #include <iomanip>
+#include <sstream>
+#include <string>
 #include "RoadNetwork.h"
 using namespace std;
 
@@ -126,21 +128,28 @@ public:
     // Print the final performance report
     void printReport(int totalVehicles) const
     {
-        cout << "\n";
-        cout << "============================================================\n";
-        cout << "         TRAFFIC FLOW OPTIMIZATION - FINAL REPORT           \n";
-        cout << "============================================================\n";
-        cout << fixed << setprecision(2);
-        cout << "  Total Simulation Steps    : " << totalSteps << "\n";
-        cout << "  Total Vehicles            : " << totalVehicles << "\n";
-        cout << "  Vehicles Arrived          : " << totalArrivedVehicles << "\n";
-        cout << "  Vehicles Still En Route   : " << totalVehicles - totalArrivedVehicles << "\n";
-        cout << "------------------------------------------------------------\n";
-        cout << "  Avg Travel Time           : " << getAverageTravelTime() << " steps\n";
-        cout << "  Total Delay               : " << getTotalDelay() << " steps\n";
-        cout << "  System Throughput         : " << getThroughput() << " vehicles/step\n";
-        cout << "  Avg Network Congestion    : " << getAverageCongestion() * 100 << "%\n";
-        cout << "============================================================\n";
+        cout << getReportString(totalVehicles);
+    }
+
+    std::string getReportString(int totalVehicles) const
+    {
+        std::ostringstream oss;
+        oss << "\n";
+        oss << "============================================================\n";
+        oss << "         TRAFFIC FLOW OPTIMIZATION - FINAL REPORT           \n";
+        oss << "============================================================\n";
+        oss << fixed << setprecision(2);
+        oss << "  Total Simulation Steps    : " << totalSteps << "\n";
+        oss << "  Total Vehicles            : " << totalVehicles << "\n";
+        oss << "  Vehicles Arrived          : " << totalArrivedVehicles << "\n";
+        oss << "  Vehicles Still En Route   : " << totalVehicles - totalArrivedVehicles << "\n";
+        oss << "------------------------------------------------------------\n";
+        oss << "  Avg Travel Time           : " << getAverageTravelTime() << " steps\n";
+        oss << "  Total Delay               : " << getTotalDelay() << " steps\n";
+        oss << "  System Throughput         : " << getThroughput() << " vehicles/step\n";
+        oss << "  Avg Network Congestion    : " << getAverageCongestion() * 100 << "%\n";
+        oss << "============================================================\n";
+        return oss.str();
     }
 
     // Print step-by-step congestion trend (for viva demo)
