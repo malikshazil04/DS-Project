@@ -1,5 +1,4 @@
 #pragma once
-
 /* a single intersection connects to multiple roads thats why we need a structure
 that stores multiple items. Vector is perfect for dynamic size and fast access
 and also a DS for adjancency list. Adjacency list is a graph representation

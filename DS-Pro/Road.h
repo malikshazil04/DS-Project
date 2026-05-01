@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include<vector>
 #include<cmath>  // power builtin function used
 using namespace std;
@@ -13,10 +13,11 @@ private:
 
 	double length; // lij
 	double maxSpeed; // vij max
-	int capacity;  // cij
+	int capacity;       // cij
+	int dischargeRate;  // mu_ij: max vehicles leaving queue per step
 
 	int currentFlow; // fij(t)
-	int queueSize;  // Qij(t), vehicles waiting at intersection
+	int queueSize;   // Qij(t), vehicles waiting at intersection
 
 	double freeTravelTime;  // wij free
 	double currentTravelTime;  // wij(t)
@@ -30,15 +31,15 @@ private:
 
 public:
 	// Constructor
-	Road(int id, int from, int to, double len, double speed, int cap)
+	Road(int id, int from, int to, double len, double speed, int cap, int discharge = 2)
 		: roadID(id), fromIntersection(from), toIntersection(to),
-		length(len), maxSpeed(speed), capacity(cap), currentFlow(0),
-		queueSize(0), alpha(0.5), beta(2.0)
+		length(len), maxSpeed(speed), capacity(cap), dischargeRate(discharge),
+		currentFlow(0), queueSize(0), alpha(0.15), beta(4.0)
 
 	{
 		// initial values that must be set when the road is created
 		// baseline travel time, if no traffic exists then cars move at max speed, only distance matters
-		freeTravelTime = length / maxSpeed; 
+		freeTravelTime = length / maxSpeed;
 		// wij(free) = lij / vij(max)
 		currentTravelTime = freeTravelTime;
 		// condition for travel time is:
@@ -57,9 +58,13 @@ public:
 
 	int getCapacity() const { return capacity; }
 
+	int getDischargeRate() const { return dischargeRate; }
+
 	int getCurrentFlow() const { return currentFlow; }
 
 	int getQueueSize() const { return queueSize; }
+
+	double getFreeTravelTime() const { return freeTravelTime; }
 
 	// Congestion Model
 	double getCongestion() const
@@ -108,13 +113,28 @@ public:
 		waitingQueue.push_back(v);
 	}
 
-	//Discharge vehicles from queue
+	// Discharge vehicles from queue
 	void dischargeVehicle()
 	{
 		if (queueSize > 0)
 			queueSize--;
 	}
 	// vehicle leaves waiting queue when signal allows movement.
+
+	// CEP Section 4.2: d_ij(t) = g_ij(t) * min(Q_ij(t), mu_ij, c_jk - f_jk(t))
+	// greenSignal: g_ij(t) in {0,1}
+	// nextRoadFlow: f_jk(t)  nextRoadCapacity: c_jk
+	int calculateAllowedDischarge(bool greenSignal, int nextRoadFlow, int nextRoadCapacity) const
+	{
+		if (!greenSignal) return 0; // g_ij = 0 → blocked
+		int availableCapacity = nextRoadCapacity - nextRoadFlow;
+		if (availableCapacity < 0) availableCapacity = 0;
+		// min(Q_ij, mu_ij, c_jk - f_jk)
+		int d = queueSize;
+		if (dischargeRate < d)       d = dischargeRate;
+		if (availableCapacity < d)   d = availableCapacity;
+		return d;
+	}
 
 	// Get Vehicle queue
 	const vector<Vehicle*>& getMovingVehicles() const
@@ -129,4 +149,3 @@ public:
 	// vector<Vehicle*> = vector storing pointers of Vehicle
 	// with & it returns the original vector not a copy.
 };
-

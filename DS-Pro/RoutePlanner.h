@@ -1,4 +1,4 @@
-﻿#pragma once
+﻿﻿#pragma once
 
 #include <vector>   // stores final path (list of nodes)
 #include <unordered_map>  // fast lookup for graph data (distances, parents, intersections)
@@ -76,11 +76,16 @@ public:
             if (currentDist > dist[currentNode])
                 continue;
 
-            // get all outgoing roads (neighbors)
-            const vector<Road*>& roads =
-                network->getOutgoingRoad(currentNode);
+            // get all outgoing roads (neighbors) — safe, returns empty if no roads
+            const auto& adjList = network->getAllRoads();
+            static const vector<Road*> emptyVec;
+            const vector<Road*>* roadsPtr = &emptyVec;
+            try {
+                roadsPtr = &network->getOutgoingRoad(currentNode);
+            }
+            catch (...) { /* node has no outgoing roads (e.g. destination) */ }
 
-            for (Road* road : roads)  // loop through all connected roads
+            for (Road* road : *roadsPtr)  // loop through all connected roads
             {
                 int neighbor = road->getTo(); // each road connects from -> to
 
@@ -113,7 +118,7 @@ public:
 
         reverse(path.begin(), path.end());
         // Convert to correct order: source -> destination
-       
+
         return path; // Return final shortest path
     }
 
