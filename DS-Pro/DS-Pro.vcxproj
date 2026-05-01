@@ -127,6 +127,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClInclude Include="MetricsCollector.h" />
     <ClInclude Include="Intersection.h" />
     <ClInclude Include="SimulationEngine.h" />
     <ClInclude Include="TrafficSignal.h" />
