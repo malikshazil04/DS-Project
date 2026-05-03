@@ -1,11 +1,15 @@
 #include "MyForm.h"
+
 using namespace System;
 using namespace System::Windows::Forms;
+using namespace TrafficFlowGUI;
+
 [STAThread]
-void main(array<String^>^ args)
+int main(cli::array<String^>^ args)
 {
     Application::EnableVisualStyles();
     Application::SetCompatibleTextRenderingDefault(false);
-    TrafficFlowGUI::MyForm form;
-    Application::Run(% form);
+    Application::Run(gcnew MyForm());
+    return 0;
 }
+

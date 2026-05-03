@@ -78,6 +78,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\DELL\source\repos\DS-Project\TRAFFIC_DS\DS-Pro</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies />
@@ -107,6 +108,7 @@
     <ClCompile>
       <WarningLevel>Level3</WarningLevel>
       <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <AdditionalIncludeDirectories>C:\Users\DELL\source\repos\DS-Project\TRAFFIC_DS\DS-Pro</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <AdditionalDependencies />
@@ -123,6 +125,13 @@
     <ClCompile Include="MyForm.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="..\DS-Pro\Intersection.h" />
+    <ClInclude Include="..\DS-Pro\MetricsCollector.h" />
+    <ClInclude Include="..\DS-Pro\Road.h" />
+    <ClInclude Include="..\DS-Pro\RoadNetwork.h" />
+    <ClInclude Include="..\DS-Pro\RoutePlanner.h" />
+    <ClInclude Include="..\DS-Pro\TrafficSignal.h" />
+    <ClInclude Include="..\DS-Pro\Vehicle.h" />
     <ClInclude Include="MyForm.h">
       <FileType>CppForm</FileType>
     </ClInclude>
