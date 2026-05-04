@@ -1,6 +1,5 @@
 ﻿#pragma once
 
-// ============================================================
 // SimulationEngine.h  —  Member 3: Integration Layer
 // Owns and orchestrates ALL subsystems:
 //   Member 1: RoadNetwork + RoutePlanner
@@ -14,7 +13,7 @@
 //   4. Recalculate Congestion & Travel Times (Section 4.3 / 4.4)
 //   5. Dynamic Re-routing every N steps (Section 4.7)
 //   6. Record Metrics (Section 4.10)
-// ============================================================
+
 
 #include <iostream>
 #include <vector>
@@ -50,9 +49,7 @@ private:
     vector<double>      freeFlowTimes;  // T_sd^free: ideal time without congestion
     vector<bool>        launched;       // has vehicle entered the network yet?
 
-    // ============================================================
-    //  Private helpers
-    // ============================================================
+    
 
     // Build queue-size vectors for all signals from current road state
     vector<vector<int>> buildQueueSizes() const
@@ -271,17 +268,16 @@ private:
     }
 
 public:
-    // ============================================================
+    
     //  Constructor: takes ownership context of Member 1 systems
-    // ============================================================
     SimulationEngine(RoadNetwork* net, RoutePlanner* rp, int rerouteEvery = 5)
         : network(net), planner(rp), currentStep(0), rerouteInterval(rerouteEvery)
     {
     }
 
-    // ============================================================
+   
     //  Setup: add vehicles and signals
-    // ============================================================
+   
     void addVehicle(const Vehicle& v)
     {
         vehicles.push_back(v);
@@ -317,9 +313,9 @@ public:
         }
     }
 
-    // ============================================================
+    
     //  Core: Execute ONE full simulation step (all 6 CEP phases)
-    // ============================================================
+    
     void runStep()
     {
         currentStep++;
@@ -365,9 +361,8 @@ public:
         cout << "\n--- Simulation Complete ---\n";
     }
 
-    // ============================================================
+   
     //  Accessors (for main.cpp to print reports)
-    // ============================================================
     int  getCurrentStep()  const { return currentStep; }
     int  getTotalVehicles() const { return (int)vehicles.size(); }
     MetricsCollector& getMetrics() { return metrics; }

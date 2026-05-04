@@ -149,6 +149,7 @@ public:
     void displayVehicle() const
     {
         cout << "Vehicle Information\n";
+        cout << "Vehicle Id: " << vehicleId << "\n";
         cout << "Source: " << source << "\n";
         cout << "Destination: " << destination << "\n";
         cout << "Current Edge: " << currentEdge << "\n";
