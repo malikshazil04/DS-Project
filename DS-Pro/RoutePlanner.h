@@ -1,5 +1,4 @@
 ﻿#pragma once
-
 #include <vector>   // stores final path (list of nodes)
 #include <unordered_map>  // fast lookup for graph data (distances, parents, intersections)
 #include <queue>  // (priority_queue) -> min-heap for Dijkstra

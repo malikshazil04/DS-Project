@@ -1,6 +1,7 @@
 #pragma once
 #include<vector>
 #include<cmath>  // power builtin function used
+#include<algorithm>
 using namespace std;
 
 class Vehicle;
@@ -99,10 +100,14 @@ public:
 	}
 
 	// Remove vehicle from road
-	void removeVehicle()
+	void removeVehicle(Vehicle* v)
 	{
 		if (currentFlow > 0)
 			currentFlow--;
+		auto it = std::find(movingVehicles.begin(), movingVehicles.end(), v);
+		if (it != movingVehicles.end()) {
+			movingVehicles.erase(it);
+		}
 	}
 	// vehicle leaves road then the flow decreases.
 
@@ -114,10 +119,14 @@ public:
 	}
 
 	// Discharge vehicles from queue
-	void dischargeVehicle()
+	void dischargeVehicle(Vehicle* v)
 	{
 		if (queueSize > 0)
 			queueSize--;
+		auto it = std::find(waitingQueue.begin(), waitingQueue.end(), v);
+		if (it != waitingQueue.end()) {
+			waitingQueue.erase(it);
+		}
 	}
 	// vehicle leaves waiting queue when signal allows movement.
 

@@ -1,34 +1,24 @@
 #pragma once
-// Member 3 - MetricsCollector
-// Responsibility: Record and report all CEP performance metrics (Section 4.10)
-// Metrics: Average Travel Time, Total Delay, Throughput, Average Congestion
-
 #include <iostream>
 #include <vector>
 #include <iomanip>
+#include <sstream>
+#include <string>
 #include "RoadNetwork.h"
 using namespace std;
 
 class MetricsCollector
 {
 private:
-    // Vehicles that reached destination
     int totalArrivedVehicles;
-
-    // Sum of all actual travel times (for avg calculation)
     double totalTravelTime;
-
-    // Sum of all delays = actual time - free flow time
     double totalDelay;
+    int totalSteps;
 
-    // History of congestion per step (for reporting trends)
+    // History of congestion per step (for trends)
     vector<double> congestionHistory;
-
     // History of arrived count per step (for throughput)
     vector<int> arrivedHistory;
-
-    // Total simulation steps run
-    int totalSteps;
 
 public:
     MetricsCollector()
@@ -40,7 +30,6 @@ public:
     }
 
     // Called when a vehicle arrives at destination
-    // actualTime = steps it took, freeFlowTime = ideal time without congestion
     void recordArrival(int actualTime, double freeFlowTime)
     {
         totalArrivedVehicles++;
@@ -50,13 +39,12 @@ public:
         totalDelay += delay;
     }
 
-    // Called each step to snapshot congestion level across all roads
+    //  Record congestion level across all roads
     void recordStepMetrics(const RoadNetwork& network, int arrivedThisStep)
     {
         totalSteps++;
         arrivedHistory.push_back(arrivedThisStep);
 
-        // Average congestion across all roads this step
         const auto& allRoads = network.getAllRoads();
         if (allRoads.empty())
         {
@@ -71,29 +59,24 @@ public:
         congestionHistory.push_back(totalCongestion / allRoads.size());
     }
 
-    // === Metric Computations (Section 4.10) ===
 
-    // Average Travel Time = (1/N) * sum(T_sd)
     double getAverageTravelTime() const
     {
         if (totalArrivedVehicles == 0) return 0.0;
         return totalTravelTime / totalArrivedVehicles;
     }
 
-    // Total Delay = sum(T_sd - T_sd_free)
     double getTotalDelay() const
     {
         return totalDelay;
     }
 
-    // Throughput = vehicles arrived / total time steps
     double getThroughput() const
     {
         if (totalSteps == 0) return 0.0;
         return (double)totalArrivedVehicles / totalSteps;
     }
 
-    // Average Congestion = (1/|E|) * sum(f_ij / c_ij)
     double getAverageCongestion() const
     {
         if (congestionHistory.empty()) return 0.0;
@@ -102,9 +85,6 @@ public:
         return sum / congestionHistory.size();
     }
 
-    // CEP Section 4.9 - Objective Function
-    // Evaluates: min ΣΣ [ α*Q_ij(t) + β*(f_ij(t)/c_ij)² ]
-    // Lower value = better traffic state (less queue + less congestion)
     double computeObjectiveFunction(const RoadNetwork& network,
         double alpha = 1.0, double beta = 1.0) const
     {
@@ -122,28 +102,31 @@ public:
 
     int getTotalArrived() const { return totalArrivedVehicles; }
     int getTotalSteps() const { return totalSteps; }
-
-    // Print the final performance report
     void printReport(int totalVehicles) const
     {
-        cout << "\n";
-        cout << "============================================================\n";
-        cout << "         TRAFFIC FLOW OPTIMIZATION - FINAL REPORT           \n";
-        cout << "============================================================\n";
-        cout << fixed << setprecision(2);
-        cout << "  Total Simulation Steps    : " << totalSteps << "\n";
-        cout << "  Total Vehicles            : " << totalVehicles << "\n";
-        cout << "  Vehicles Arrived          : " << totalArrivedVehicles << "\n";
-        cout << "  Vehicles Still En Route   : " << totalVehicles - totalArrivedVehicles << "\n";
-        cout << "------------------------------------------------------------\n";
-        cout << "  Avg Travel Time           : " << getAverageTravelTime() << " steps\n";
-        cout << "  Total Delay               : " << getTotalDelay() << " steps\n";
-        cout << "  System Throughput         : " << getThroughput() << " vehicles/step\n";
-        cout << "  Avg Network Congestion    : " << getAverageCongestion() * 100 << "%\n";
-        cout << "============================================================\n";
+        cout << getReportString(totalVehicles);
+    }
+    string getReportString(int totalVehicles) const
+    {
+        ostringstream oss;
+        oss << "\n";
+        oss << "============================================================\n";
+        oss << "         TRAFFIC FLOW OPTIMIZATION - FINAL REPORT           \n";
+        oss << "============================================================\n";
+        oss << fixed << setprecision(2);
+        oss << "  Total Simulation Steps    : " << totalSteps << "\n";
+        oss << "  Total Vehicles            : " << totalVehicles << "\n";
+        oss << "  Vehicles Arrived          : " << totalArrivedVehicles << "\n";
+        oss << "  Vehicles Still En Route   : " << totalVehicles - totalArrivedVehicles << "\n";
+        oss << "------------------------------------------------------------\n";
+        oss << "  Avg Travel Time           : " << getAverageTravelTime() << " steps\n";
+        oss << "  Total Delay               : " << getTotalDelay() << " steps\n";
+        oss << "  System Throughput         : " << getThroughput() << " vehicles/step\n";
+        oss << "  Avg Network Congestion    : " << getAverageCongestion() * 100 << "%\n";
+        oss << "============================================================\n";
+        return oss.str();
     }
 
-    // Print step-by-step congestion trend (for viva demo)
     void printCongestionHistory() const
     {
         cout << "\n[Congestion History per Step]\n";

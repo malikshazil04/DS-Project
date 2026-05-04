@@ -1,8 +1,4 @@
 #pragma once
-// Member 3 - InputHandler
-// Responsibility: Safe user input + city network configuration
-// Validates all user inputs before they enter the simulation
-
 #include <iostream>
 #include <string>
 #include <limits>
@@ -14,9 +10,9 @@ using namespace std;
 class InputHandler
 {
 public:
-    // === Safe Input Helpers ===
 
-    // Read a positive integer from user with prompt
+
+    // Read a positive integer from user 
     static int readPositiveInt(const string& prompt)
     {
         int val;
@@ -61,7 +57,7 @@ public:
         }
     }
 
-    // Read integer in a given range [lo, hi]
+    // Read integer in a given range [
     static int readIntInRange(const string& prompt, int lo, int hi)
     {
         int val;
@@ -76,9 +72,9 @@ public:
         }
     }
 
-    // === Network Setup ===
 
-    // Interactively build the RoadNetwork from user
+
+    // build the RoadNetwork from user
     static void buildNetworkFromUser(RoadNetwork& network)
     {
         cout << "\n--- Road Network Setup ---\n";
@@ -134,7 +130,7 @@ public:
         }
     }
 
-    // Create vehicles interactively
+    // Creates vehicles 
     static vector<Vehicle> buildVehiclesFromUser()
     {
         vector<Vehicle> vehicles;

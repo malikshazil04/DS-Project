@@ -33,9 +33,6 @@
     <ClInclude Include="SimulationEngine.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="Intersectionsh.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="InputHandler.h">
       <Filter>Header Files</Filter>
     </ClInclude>

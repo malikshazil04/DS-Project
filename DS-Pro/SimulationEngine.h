@@ -1,60 +1,33 @@
 #pragma once
-
-// ============================================================
-// SimulationEngine.h  —  Member 3: Integration Layer
-// Owns and orchestrates ALL subsystems:
-//   Member 1: RoadNetwork + RoutePlanner
-//   Member 2: Vehicle + TrafficSignal
-//   Member 3: MetricsCollector (self)
-//
-// Executes the full CEP discrete-time loop each step:
-//   1. Update Traffic Signals     (Section 4.8)
-//   2. Update Vehicle Travel Times (Section 4.6)
-//   3. Process Intersection Arrivals + Discharge (Section 4.2)
-//   4. Recalculate Congestion & Travel Times (Section 4.3 / 4.4)
-//   5. Dynamic Re-routing every N steps (Section 4.7)
-//   6. Record Metrics (Section 4.10)
-// ============================================================
-
 #include <iostream>
 #include <vector>
 #include <iomanip>
+#include <map>
 #include "Vehicle.h"
 #include "TrafficSignal.h"
 #include "RoadNetwork.h"
 #include "RoutePlanner.h"
 #include "MetricsCollector.h"
-
 using namespace std;
 
 class SimulationEngine
 {
 private:
-    // --- Subsystem references (Member 1 + Member 2 components) ---
-    RoadNetwork* network;    // Member 1: Graph of intersections & roads
-    RoutePlanner* planner;    // Member 1: Dijkstra shortest path engine
 
-    vector<Vehicle>       vehicles;  // Member 2: All vehicle entities
-    vector<TrafficSignal> signals;   // Member 2: All intersection signals
-
-    MetricsCollector metrics;        // Member 3: Performance recorder
-
-    // --- Internal simulation state ---
+    RoadNetwork* network;    
+    RoutePlanner* planner; 
+    MetricsCollector metrics;
+    vector<Vehicle> vehicles;  
+    vector<TrafficSignal> signals;            
+    vector<vector<int>> vehiclePaths;   
+    vector<int>         pathProgress;   
+    vector<int>         startStep;      
+    vector<double>      freeFlowTimes;  
+    vector<bool>        launched; 
     int currentStep;
-    int rerouteInterval;  // how often dynamic re-routing fires (default: 5)
+    int rerouteInterval;
 
-    // Per-vehicle routing state
-    vector<vector<int>> vehiclePaths;   // P_v: path as sequence of node IDs
-    vector<int>         pathProgress;   // which edge in path the vehicle is on (0 = not launched)
-    vector<int>         startStep;      // step when vehicle was launched
-    vector<double>      freeFlowTimes;  // T_sd^free: ideal time without congestion
-    vector<bool>        launched;       // has vehicle entered the network yet?
 
-    // ============================================================
-    //  Private helpers
-    // ============================================================
-
-    // Build queue-size vectors for all signals from current road state
     vector<vector<int>> buildQueueSizes() const
     {
         vector<vector<int>> allQueueSizes;
@@ -72,16 +45,14 @@ private:
         return allQueueSizes;
     }
 
-    // Check if a destination node has a green signal for a given road
     bool isGreenAt(int destNode, int roadId) const
     {
         for (const TrafficSignal& sig : signals)
             if (sig.getIntersectionId() == destNode)
                 return sig.isGreen(roadId);
-        return true; // no signal at node → always green
+        return true; 
     }
 
-    // Find the Road* connecting fromNode -> toNode (safe, no exception)
     Road* findRoad(int fromNode, int toNode) const
     {
         const auto& allRoads = network->getAllRoads();
@@ -94,7 +65,6 @@ private:
         return nullptr;
     }
 
-    // Compute free-flow travel time along a path (sum of w_ij^free)
     double computeFreeFlowTime(const vector<int>& path) const
     {
         double fft = 0.0;
@@ -105,29 +75,24 @@ private:
         }
         return fft;
     }
-
-    // --- CEP Step 1: Adaptive Traffic Signals (Section 4.8) ---
-    // Only ONE incoming road per intersection gets green (Σ g_ij = 1)
+	// Update traffic signals based on current queue sizes at each intersection
     void stepUpdateSignals()
     {
         vector<vector<int>> queueSizes = buildQueueSizes();
         for (int i = 0; i < (int)signals.size(); i++)
             signals[i].updateSignal(queueSizes[i]);
     }
-
-    // --- CEP Step 2: Decrement vehicle travel times (Section 4.6) ---
-    // r_v(t+1) = r_v(t) - 1
+	// Update remaining travel times for all moving vehicles
     void stepUpdateVehicleTimes()
     {
         for (Vehicle& v : vehicles)
             if (v.isMoving())
                 v.updateRemainingTime();
     }
-
-    // --- CEP Step 3: Process all vehicles each step ---
-    // Handles: launching new vehicles, moving queued vehicles, marking arrivals
+	// Process vehicle movements at intersections, handle arrivals, and update metrics
     void stepProcessIntersections(int& arrivedThisStep)
     {
+        map<int, int> dischargedThisStep;
         for (int i = 0; i < (int)vehicles.size(); i++)
         {
             if (vehicles[i].isArrived()) continue;
@@ -136,7 +101,7 @@ private:
             int pathLen = (int)vehiclePaths[i].size();
             if (pathLen < 2) { vehicles[i].arrive(); continue; }
 
-            // === Case A: Vehicle not yet launched — try to enter first road ===
+			//vehiclae is not launched yet, try to put it on the first road if possible
             if (!launched[i])
             {
                 Road* firstRoad = findRoad(vehiclePaths[i][0], vehiclePaths[i][1]);
@@ -149,95 +114,102 @@ private:
                     firstRoad->addVehicle(&vehicles[i]);
                     int tt = max(1, (int)firstRoad->getCurrentTravelTime());
                     vehicles[i].enterEdge(firstRoad->getRoadID(), tt);
-                    pathProgress[i] = 1; // now heading toward node index 1
+                    pathProgress[i] = 1; 
                 }
-                // else: road full, wait until next step
                 continue;
             }
 
-            // === Case B: Vehicle is MOVING — wait for travel time to expire ===
-            if (vehicles[i].isMoving()) continue;
+			// Vehicle is moving, check if it has reached the end of current edge
 
-            // === Case C: Vehicle is WAITING at intersection (remainingTime == 0) ===
-            // It has reached node vehiclePaths[i][progress] and wants to go to [progress+1]
+            if (vehicles[i].isMoving())
+            {
+                if (vehicles[i].getRemainingTravelTime() > 0) continue;
 
-            // Reached final destination?
+
+                vehicles[i].waitAtIntersection(); 
+
+                if (progress > 0) {
+                    Road* currRoad = findRoad(vehiclePaths[i][progress - 1], vehiclePaths[i][progress]);
+                    if (currRoad) currRoad->enqueueVehicle(&vehicles[i]);
+                }
+            }
+
+			// Vehicle is waiting at intersection, try to move to next edge if possible
+
             if (progress >= pathLen - 1)
             {
+                int fromNode = vehiclePaths[i][progress - 1];
+                int toNode = vehiclePaths[i][progress];
+                Road* currRoad = findRoad(fromNode, toNode);
+                if (currRoad) {
+                    currRoad->dischargeVehicle(&vehicles[i]); 
+                    currRoad->removeVehicle(&vehicles[i]);    
+                }
+				// Vehicle has reached destination
                 vehicles[i].arrive();
                 int actualTime = currentStep - startStep[i];
                 metrics.recordArrival(actualTime, freeFlowTimes[i]);
                 arrivedThisStep++;
                 continue;
             }
-
-            // Find next road
+			// Vehicle is waiting at intersection, try to move to next edge if possible
             int fromNode = vehiclePaths[i][progress - 1];
             int toNode = vehiclePaths[i][progress];
-            Road* currRoad = findRoad(fromNode, toNode);  // road vehicle just finished
+            Road* currRoad = findRoad(fromNode, toNode);
 
             int nextFrom = vehiclePaths[i][progress];
             int nextTo = vehiclePaths[i][progress + 1];
             Road* nextRoad = findRoad(nextFrom, nextTo);
-
+			// If next road doesn't exist, treat as arrival
             if (!nextRoad)
             {
-                vehicles[i].arrive(); // dead-end, treat as arrived
+                if (currRoad) {
+                    currRoad->dischargeVehicle(&vehicles[i]);
+                    currRoad->removeVehicle(&vehicles[i]);
+                }
+                vehicles[i].arrive(); 
                 continue;
             }
-
-            // Look-ahead: capacity of the road after nextRoad (c_jk, f_jk)
-            int lookFlow = 0, lookCap = 9999;
-            if (progress + 2 < pathLen)
-            {
-                Road* lookAhead = findRoad(nextTo, vehiclePaths[i][progress + 2]);
-                if (lookAhead) { lookFlow = lookAhead->getCurrentFlow(); lookCap = lookAhead->getCapacity(); }
+			// Check traffic signal and capacity
+            bool green = true;
+            if (currRoad) {
+                green = isGreenAt(toNode, currRoad->getRoadID());
             }
 
-            // Signal check at nextTo intersection
-            bool green = isGreenAt(nextTo, nextRoad->getRoadID());
-
-            // CEP discharge formula: d = g * min(Q, mu, c_jk - f_jk)
-            // Q here = 1 (this one vehicle waiting)
             int allowed = 0;
             if (green && nextRoad->getCurrentFlow() < nextRoad->getCapacity())
             {
-                int mu = nextRoad->getDischargeRate();
-                int available = lookCap - lookFlow;
-                if (available < 0) available = 0;
-                allowed = min(1, min(mu, available)); // Q=1 for this vehicle
+                int mu = currRoad ? currRoad->getDischargeRate() : 999;
+                int available = nextRoad->getCapacity() - nextRoad->getCurrentFlow();
+                allowed = min(1, min(mu, available)); 
             }
-
+			// If allowed to move, discharge from current road and add to next road
             if (allowed > 0)
             {
-                // Discharge from current road's queue and enter next road
-                if (currRoad) currRoad->dischargeVehicle();
+                if (currRoad) {
+                    int roadId = currRoad->getRoadID();
+                    if (dischargedThisStep[roadId] >= currRoad->getDischargeRate()) {
+                        continue; 
+                    }
+                    dischargedThisStep[roadId]++;
+                    currRoad->dischargeVehicle(&vehicles[i]);
+                    currRoad->removeVehicle(&vehicles[i]);
+                }
+
                 nextRoad->addVehicle(&vehicles[i]);
                 int tt = max(1, (int)nextRoad->getCurrentTravelTime());
                 vehicles[i].enterEdge(nextRoad->getRoadID(), tt);
                 pathProgress[i]++;
             }
-            else
-            {
-                // Blocked — enqueue on current road and keep waiting
-                if (currRoad && vehicles[i].isWaiting())
-                    currRoad->enqueueVehicle(&vehicles[i]); // idempotent-ish via status
-                vehicles[i].waitAtIntersection();
-            }
         }
     }
-
-    // --- CEP Step 4: Update congestion + travel times (Section 4.3 / 4.4) ---
-    // rho_ij = f_ij / c_ij
-    // w_ij(t) = w_ij^free * (1 + alpha * rho^beta)
+	// Update travel times on all roads based on current congestion
     void stepUpdateTravelTimes()
     {
         for (const auto& rPair : network->getAllRoads())
             rPair.second->updateTravelTime();
     }
-
-    // --- CEP Step 5: Dynamic re-routing (Section 4.7) ---
-    // Re-run Dijkstra from each waiting vehicle's current node
+	// Reroute vehicles based on current traffic conditions every rerouteInterval steps
     void stepReroute()
     {
         for (int i = 0; i < (int)vehicles.size(); i++)
@@ -259,16 +231,10 @@ private:
     }
 
 public:
-    // ============================================================
-    //  Constructor: takes ownership context of Member 1 systems
-    // ============================================================
     SimulationEngine(RoadNetwork* net, RoutePlanner* rp, int rerouteEvery = 5)
         : network(net), planner(rp), currentStep(0), rerouteInterval(rerouteEvery)
     {}
 
-    // ============================================================
-    //  Setup: add vehicles and signals
-    // ============================================================
     void addVehicle(const Vehicle& v)
     {
         vehicles.push_back(v);
@@ -283,9 +249,6 @@ public:
     {
         signals.push_back(s);
     }
-
-    // Call after all vehicles and roads are added.
-    // Computes initial Dijkstra paths for all vehicles (Section 4.7).
     void initializeRoutes()
     {
         cout << "\n[Routing] Computing initial shortest paths (Dijkstra)...\n";
@@ -304,30 +267,24 @@ public:
         }
     }
 
-    // ============================================================
-    //  Core: Execute ONE full simulation step (all 6 CEP phases)
-    // ============================================================
     void runStep()
     {
         currentStep++;
         int arrivedThisStep = 0;
 
-        stepUpdateSignals();          // Phase 1: Adaptive signals
-        stepUpdateVehicleTimes();     // Phase 2: Decrement r_v(t)
-        stepProcessIntersections(arrivedThisStep); // Phase 3: Discharge + move
-        stepUpdateTravelTimes();      // Phase 4: Congestion model
+        stepUpdateSignals();          
+        stepUpdateVehicleTimes();     
+        stepProcessIntersections(arrivedThisStep); 
+        stepUpdateTravelTimes();   
         if (currentStep % rerouteInterval == 0)
-            stepReroute();            // Phase 5: Dynamic re-routing
+            stepReroute();         
 
-        metrics.recordStepMetrics(*network, arrivedThisStep); // Phase 6: Metrics
+        metrics.recordStepMetrics(*network, arrivedThisStep); 
     }
 
-    // ============================================================
-    //  Run full simulation for N steps
-    // ============================================================
     void run(int totalSteps, bool verbose = true)
     {
-        cout << "\n--- Simulation Start (" << totalSteps << " steps) ---\n\n";
+        cout << "\n Simulation Start (" << totalSteps << " steps) \n\n";
 
         for (int s = 1; s <= totalSteps; s++)
         {
@@ -349,15 +306,13 @@ public:
             if (countArrivedVehicles() == (int)vehicles.size()) break;
         }
 
-        cout << "\n--- Simulation Complete ---\n";
+        cout << "\n   Simulation Complete \n";
     }
 
-    // ============================================================
-    //  Accessors (for main.cpp to print reports)
-    // ============================================================
     int  getCurrentStep()  const { return currentStep; }
     int  getTotalVehicles() const { return (int)vehicles.size(); }
     MetricsCollector& getMetrics() { return metrics; }
+    const vector<TrafficSignal>& getSignals() const { return signals; }
 
     int countArrivedVehicles() const
     {
@@ -366,9 +321,6 @@ public:
         return count;
     }
 
-    // ============================================================
-    //  Display helpers
-    // ============================================================
     void displayVehicleState() const
     {
         cout << "\n[Vehicle State at Step " << currentStep << "]\n";
